@@ -6,11 +6,6 @@ public class Game
 {
     private Survivor _survivor;
 
-    private int _day = 1;
-    private int _timeOfDay = 0;
-    private string[] _timeNames = { "reggel", "dél", "délután", "este" };
-    private List<string> _buildings = new List<string>();
-
     public void Run()
     {
         Console.OutputEncoding = Encoding.UTF8; // hogy az ékezetes betűk jól jelenjenek meg
@@ -19,6 +14,7 @@ public class Game
         Console.WriteLine(Texts.Intro);
         Console.WriteLine();
 
+        // K1: névbekérés
         string name = AskName();
         if (name == null)
         {
