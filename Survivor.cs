@@ -16,8 +16,9 @@ namespace Castaway
         private int _stone;
         private int _leaf;
         private int _rope;
+        
 
-        public string Name {get; private set;}
+        public string Name { get; private set; }
         public int Food { get; private set; }
         public int Water { get; private set; }
         public int Energy { get; private set; }
@@ -25,7 +26,6 @@ namespace Castaway
         public int Stone { get; private set; }
         public int Leaf { get; private set; }
         public int Rope { get; private set; }
-
         public Survivor(string name)
         {
             _name = name;
@@ -36,6 +36,16 @@ namespace Castaway
             _stone = 0;
             _leaf = 0;
             _rope = 0;
+        }public Survivor(string name, int food, int water, int energy, int wood, int stone, int leaf, int rope)
+        {
+            _name = name;
+            _food = LimitStatisztika(food);
+            _water = LimitStatisztika(water);
+            _energy = LimitStatisztika(energy);
+            _wood = LimitAlapAnyag(wood);
+            _stone = LimitAlapAnyag(stone);
+            _leaf = LimitAlapAnyag(leaf);
+            _rope = LimitAlapAnyag(rope);
         }
         private int LimitStatisztika(int value)
         {
@@ -91,6 +101,10 @@ namespace Castaway
         public void AddRope(int amount)
         {
             _rope = LimitAlapAnyag(_rope + amount);
+        }
+        public void DeleteEnergy(int amount)
+        {
+            _energy = LimitStatisztika(_energy - amount);
         }
     }
 }
