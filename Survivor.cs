@@ -122,5 +122,13 @@ namespace Castaway
         {
             _stone = LimitAlapAnyag(_stone - amount);
         }
+        public void DeleteFood(int amount)
+        {
+            _food = LimitStatisztika(_food - amount);
+        }
+        public void DeleteWater(int amount)
+        {
+            _water = LimitStatisztika(_water - amount);
+        }
     }
 }

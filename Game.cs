@@ -4,6 +4,14 @@ using System.Text;
 
 public class Game
 {
+    private const int NightFoodCost = 2;
+    private const int NightWaterCost = 2;
+    private const int NightEnergyGain = 3;
+
+    private bool _gameEnded = false;
+    private string _endReason = "";
+    private int _warningShownDay = 0;
+
     private const int MaxStat = 10;
     private const int ActionCost = 2;
     private const int RestGain = 5;
@@ -48,11 +56,15 @@ public class Game
         Console.WriteLine($"Üdv a szigeten, {_survivor.Name}!");
         Console.WriteLine();
         bool running = true;
-        while (running)
+        while (running && !_gameEnded)
         {
+            CheckShipWarning();
+
             ShowStatus();
             ShowMenu();
-            int choice = ReadNumber(1, 7);
+
+            int choice = ReadNumber(1, 8);
+
             Console.WriteLine();
 
             if (choice >= 1 && choice <= 4)
@@ -73,16 +85,18 @@ public class Game
             {
                 ShowInventory();
             }
-            else
+            else if (choice == 7)
             {
                 running = false;
+                _endReason = "Kilépés";
             }
+
             Console.WriteLine();
         }
+        ShowSummary();
 
+        Console.WriteLine();
         Console.WriteLine("Viszlát, " + _survivor.Name + "!");
-        Console.WriteLine("Nyomj Entert a kilépéshez.");
-        Console.ReadLine();
     }
     private bool DoAction(int choice)
     {
@@ -147,12 +161,84 @@ public class Game
     private void AdvanceTime()
     {
         _timeOfDay++;
+
         if (_timeOfDay > 2)
         {
             _timeOfDay = 0;
-            _day++;
-            Console.WriteLine("Leszállt az éj, majd újra felkelt a nap. Új nap kezdődik.");
+
+            Console.WriteLine();
+            Console.WriteLine("--- Leszállt az éj (" + _day + ". nap) ---");
+
+            if (_day % 5 == 0)
+            {
+                if (CheckShip())
+                {
+                    return;
+                }
+            }
+
+            Night();
+
+            if (!_gameEnded)
+            {
+                _day++;
+            }
         }
+    }
+    private void Night()
+    {
+        _survivor.DeleteFood(NightFoodCost);
+        _survivor.DeleteWater(NightWaterCost);
+
+        Console.WriteLine("Éjszakai fogyasztás:");
+        Console.WriteLine("-2 élelem");
+        Console.WriteLine("-2 víz");
+
+        NightEvent nightEvent;
+
+        if (_random.Next(100) < 25)
+        {
+            NightEvent[] events =
+            {
+            NightEvent.StrongWind,
+            NightEvent.WildAnimal
+        };
+
+            nightEvent = events[_random.Next(events.Length)];
+        }
+        else
+        {
+            nightEvent = NightEvent.QuietNight;
+        }
+
+        switch (nightEvent)
+        {
+            case NightEvent.QuietNight:
+                Console.WriteLine(RandomText(Texts.QuietNights));
+                break;
+
+            case NightEvent.StrongWind:
+                Console.WriteLine(RandomText(Texts.WindTexts));
+                _survivor.DeleteWood(2);
+                Console.WriteLine("2 fa elveszett.");
+                break;
+
+            case NightEvent.WildAnimal:
+                Console.WriteLine(RandomText(Texts.AnimalTexts));
+                _survivor.DeleteFood(2);
+                Console.WriteLine("2 élelem elveszett.");
+                break;
+        }
+
+        if (_survivor.Food == 0 || _survivor.Water == 0)
+        {
+            GameOver();
+            return;
+        }
+
+        _survivor.AddEnergy(NightEnergyGain);
+
+        Console.WriteLine("Átaludtad az éjszakát. +3 energia.");
     }
 
     private string RandomText(string[] texts)
@@ -236,8 +322,9 @@ public class Game
         Console.WriteLine("[3] Anyaggyűjtés");
         Console.WriteLine("[4] Pihenés");
         Console.WriteLine("[5] Barkácsolás");
-        Console.WriteLine("[6] Leltár");
-        Console.WriteLine("[7] Kilépés");
+        Console.WriteLine("[6] Halászat");
+        Console.WriteLine("[7] Leltár");
+        Console.WriteLine("[8] Kilépés");
     }
     private void ShowInventory()
     {
@@ -346,6 +433,108 @@ public class Game
         Console.WriteLine(recipe.Effect);
 
         return true;
+    }
+    private bool CheckShip()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Egy hajó halad el a sziget mellett!");
+
+        if (_buildings.Contains("Jelzőtűz"))
+        {
+            Console.WriteLine("A hajó észrevette a jelzőtüzedet!");
+            Console.WriteLine("MEGMENEKÜLTÉL!");
+
+            _gameEnded = true;
+            _endReason = "Megmenekülés";
+
+            return true;
+        }
+        else
+        {
+            Console.WriteLine();
+            Console.WriteLine(RandomText(Texts.ShipMissed));
+
+            return false;
+        }
+    }
+    private void GameOver()
+    {
+        Console.WriteLine();
+        Console.WriteLine("========== GAME OVER ==========");
+
+        if (_survivor.Food == 0)
+        {
+            Console.WriteLine("Elfogyott az élelmed!");
+        }
+
+        if (_survivor.Water == 0)
+        {
+            Console.WriteLine("Elfogyott a vized!");
+        }
+
+        Console.WriteLine("Nem sikerült túlélned az éjszakát.");
+
+        _gameEnded = true;
+        _endReason = "Game Over";
+    }
+    private void CheckShipWarning()
+    {
+        if (_day % 5 == 0 && _warningShownDay != _day)
+        {
+            Console.WriteLine();
+            Console.WriteLine("FIGYELEM! Ma este egy hajó haladhat el a sziget mellett!");
+            Console.WriteLine("Ha van jelzőtüzed, észrevehetnek!");
+
+            _warningShownDay = _day;
+        }
+    }
+    private void ShowSummary()
+    {
+        Console.WriteLine();
+        Console.WriteLine("========== JÁTÉK ÖSSZEGZÉSE ==========");
+
+        Console.WriteLine("Játékos: " + _survivor.Name);
+        Console.WriteLine("A játék vége: " + _endReason);
+        Console.WriteLine("A szigeten töltött napok: " + _day);
+
+        Console.WriteLine();
+        Console.WriteLine("Megépített építmények:");
+
+        if (_buildings.Count == 0)
+        {
+            Console.WriteLine("Nem építettél semmit.");
+        }
+        else
+        {
+            foreach (string building in _buildings)
+            {
+                Console.WriteLine("- " + building);
+            }
+        }
+
+        Console.WriteLine("======================================");
+    }
+    private void Fishing()
+    {
+        if (_survivor.Energy < ActionCost)
+        {
+            Console.WriteLine("Nincs elég energiád a halászathoz!");
+            return;
+        }
+
+        _survivor.DeleteEnergy(ActionCost);
+
+        int chance = _buildings.Contains("Lándzsa") ? 75 : 50;
+
+        if (_random.Next(100) < chance)
+        {
+            _survivor.AddFood(5);
+            Console.WriteLine("Sikeresen halásztál! +5 élelem.");
+        }
+        else
+        {
+            Console.WriteLine("Sajnos nem sikerült halat fognod.");
+        }
     }
 
 }
