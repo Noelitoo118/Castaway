@@ -67,25 +67,33 @@ public class Game
 
             Console.WriteLine();
 
-            if (choice >= 1 && choice <= 4)
+            if (_timeOfDay == 2 &&
+            (choice == 1 || choice == 2 || choice == 3 || choice == 5))
             {
-                if (DoAction(choice))
-                {
-                    AdvanceTime();
-                }
+                Console.WriteLine("Már sötét van! Este csak pihenni vagy barkácsolni lehet.");
+            }
+            else if (choice >= 1 && choice <= 4)
+            {
+                DoAction(choice);
+                AdvanceTime();
             }
             else if (choice == 5)
+            {
+                Fishing();
+                AdvanceTime();
+            }
+            else if (choice == 6)
             {
                 if (Craft())
                 {
                     AdvanceTime();
                 }
             }
-            else if (choice == 6)
+            else if (choice == 7)
             {
                 ShowInventory();
             }
-            else if (choice == 7)
+            else if (choice == 8)
             {
                 running = false;
                 _endReason = "Kilépés";
@@ -237,7 +245,11 @@ public class Game
         }
 
         _survivor.AddEnergy(NightEnergyGain);
-
+        if (!_buildings.Contains("Menedék") && _random.Next(100) < 30)
+        {
+            _survivor.DeleteEnergy(3);
+            Console.WriteLine("Rosszul aludtál a szabad ég alatt! -3 energiát vesztettél.");
+        }
         Console.WriteLine("Átaludtad az éjszakát. +3 energia.");
     }
 
@@ -529,11 +541,12 @@ public class Game
         if (_random.Next(100) < chance)
         {
             _survivor.AddFood(5);
-            Console.WriteLine("Sikeresen halásztál! +5 élelem.");
+            Console.WriteLine(RandomText(Texts.FishingSuccess));
+            Console.WriteLine("+5 élelem!");
         }
         else
         {
-            Console.WriteLine("Sajnos nem sikerült halat fognod.");
+            Console.WriteLine(RandomText(Texts.FishingFail));
         }
     }
 
