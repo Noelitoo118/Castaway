@@ -8,34 +8,74 @@ namespace Castaway
 {
     public class Craft
     {
-        public string Name { get; }
-        public int Wood { get; }
-        public int Stone { get; }
-        public int Leaves { get; }
-        public int Rope { get; }
-        public string Effect { get; }
-        public bool IsStructure { get; }
+        public string Name { get; private set; }
+        public int Wood { get; private set; }
+        public int Stone { get; private set; }
+        public int Leaf { get; private set; }
+        public int Rope { get; private set; }
+        public string Effect { get; private set; }
+        public bool IsBuilding { get; private set; }
 
-        public Craft(string name, int wood, int stone, int leaves, int rope,
-                      string effect, bool isStructure)
+        public Craft(string name, int wood, int stone,
+            int leaf, int rope, string effect, bool isBuilding)
         {
             Name = name;
             Wood = wood;
             Stone = stone;
-            Leaves = leaves;
+            Leaf = leaf;
             Rope = rope;
             Effect = effect;
-            IsStructure = isStructure;
+            IsBuilding = isBuilding;
         }
-        public string CostText()
+    
+        public bool IsRopeCraftable(int leafamount)
         {
-            var parts = new List<string>();
-            if (Wood > 0) parts.Add($"{Wood} fa");
-            if (Stone > 0) parts.Add($"{Stone} kő");
-            if (Leaves > 0) parts.Add($"{Leaves} levél");
-            if (Rope > 0) parts.Add($"{Rope} kötél");
-            return string.Join(", ", parts);
+            if (Leaf < leafamount || Leaf == leafamount)
+            {
+                return true;
+            }
+            return false;
         }
-    }
+        public bool IsFirePlaceCraftable(int woodamount, int stoneamount)
+        {
+            if (Wood < woodamount || Wood == woodamount)
+            {
+                if (Stone < stoneamount || Stone == stoneamount)
+                {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+        public bool IsRefugeCraftable(int woodamount, int leafamount, int ropeamount)
+        {
+            if (Wood < woodamount || Wood == woodamount)
+            {
+                if (Leaf < leafamount || Leaf == leafamount)
+                {
+                    if (Rope < ropeamount || Rope == ropeamount)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public bool IsSignalFireCraftable(int woodamount, int stoneamount, int ropeamount)
+        {
+            if (Wood < woodamount || Wood == woodamount)
+            {
+                if (Stone < stoneamount || Stone == stoneamount)
+                {
+                    if (Rope < ropeamount || Rope == ropeamount)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    } 
 }
 

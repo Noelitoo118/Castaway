@@ -12,9 +12,23 @@ public class Game
     private Survivor _survivor;
     private int _day = 1;
     private int _timeOfDay = 0;
-    private string[] _timeNames = { "reggel", "dél", "délután", "este" };
+    private string[] _timeNames = { "délelőtt", "délután", "este" };
     private List<string> _buildings = new List<string>();
 
+    private List<Craft> _recipes = new List<Craft>
+{
+    new Craft("Kötél", 0, 0, 3, 0,
+        "Alapanyag, többször is elkészíthető.", false),
+
+    new Craft("Tűzrakó hely", 3, 2, 0, 0,
+        "A vízkeresés +2 vizet ad.", true),
+
+    new Craft("Menedék", 6, 0, 4, 1,
+        "A pihenés 5 helyett 7 energiát ad.", true),
+
+    new Craft("Jelzőtűz", 10, 5, 0, 2,
+        "Egy arra járó hajó észrevehet.", true)
+};
     public void Run()
     {
         Console.OutputEncoding = Encoding.UTF8; // hogy az ékezetes betűk jól jelenjenek meg
@@ -50,7 +64,10 @@ public class Game
             }
             else if (choice == 5)
             {
-                Console.WriteLine("Barkácsolás: ez később lesz kész.");
+                if (Craft())
+                {
+                    AdvanceTime();
+                }
             }
             else if (choice == 6)
             {
@@ -78,8 +95,17 @@ public class Game
 
         if (choice == 4)
         {
-            _survivor.AddEnergy(RestGain);
-            Console.WriteLine(RandomText(Texts.RestTexts) + " +" + RestGain + " energia.");
+            int gain = RestGain;
+
+            if (_buildings.Contains("Menedék"))
+            {
+                gain = 7;
+            }
+
+            _survivor.AddEnergy(gain);
+
+            Console.WriteLine(RandomText(Texts.RestTexts) + " +" + gain + " energia.");
+
             return true;
         }
 
@@ -94,7 +120,14 @@ public class Game
         else if (choice == 2)
         {
             int gain = _random.Next(2, 5);
+
+            if (_buildings.Contains("Tűzrakó hely"))
+            {
+                gain += 2;
+            }
+
             _survivor.AddWater(gain);
+
             Console.WriteLine(RandomText(Texts.WaterTexts) + " +" + gain + " víz.");
         }
         else
@@ -139,7 +172,63 @@ public class Game
             + " | Kötél " + _survivor.Rope);
         Console.WriteLine();
     }
+    private bool CanCraft(Craft recipe)
+    {
+        if (_survivor.Wood < recipe.Wood)
+            return false;
 
+        if (_survivor.Stone < recipe.Stone)
+            return false;
+
+        if (_survivor.Leaf < recipe.Leaf)
+            return false;
+
+        if (_survivor.Rope < recipe.Rope)
+            return false;
+
+        if (recipe.IsBuilding && _buildings.Contains(recipe.Name))
+            return false;
+
+        return true;
+    }
+    private void UseMaterials(Craft recipe)
+    {
+        _survivor.DeleteWood(recipe.Wood);
+        _survivor.DeleteStone(recipe.Stone);
+        _survivor.DeleteLeaf(recipe.Leaf);
+        _survivor.DeleteRope(recipe.Rope);
+    }
+    public void ShowCrafts()
+    {
+        Console.WriteLine("--- Barkácsolás ---");
+
+        Console.WriteLine("[0] Visszalépés");
+
+        for (int i = 0; i < _recipes.Count; i++)
+        {
+            Craft recipe = _recipes[i];
+
+            Console.WriteLine(
+                "[" + (i + 1) + "] " + recipe.Name
+                + " | Fa: " + recipe.Wood
+                + " | Kő: " + recipe.Stone
+                + " | Levél: " + recipe.Leaf
+                + " | Kötél: " + recipe.Rope);
+
+            Console.WriteLine("Hatás: " + recipe.Effect);
+
+            if (CanCraft(recipe))
+            {
+                Console.WriteLine("Elkészíthető: Igen");
+            }
+            else
+            {
+                Console.WriteLine("Elkészíthető: Nem");
+            }
+
+            Console.WriteLine();
+        }
+    }
     private void ShowMenu()
     {
         Console.WriteLine("[1] Gyűjtögetés");
@@ -214,6 +303,49 @@ public class Game
         }
 
         return input;
+    }
+    private bool Craft()
+    {
+        ShowCrafts();
+
+        int choice = ReadNumber(0, _recipes.Count);
+
+        if (choice == 0)
+        {
+            return false;
+        }
+
+        Craft recipe = _recipes[choice - 1];
+
+        if (!CanCraft(recipe))
+        {
+            Console.WriteLine("Nincs elegendő alapanyagod, vagy ez az építmény már elkészült.");
+            return false;
+        }
+
+        if (_survivor.Energy < ActionCost)
+        {
+            Console.WriteLine("Túl fáradt vagy! Legalább 2 energia szükséges.");
+            return false;
+        }
+
+        UseMaterials(recipe);
+
+        _survivor.DeleteEnergy(ActionCost);
+
+        if (recipe.Name == "Kötél")
+        {
+            _survivor.AddRope(1);
+        }
+        else
+        {
+            _buildings.Add(recipe.Name);
+        }
+
+        Console.WriteLine("Sikeresen elkészítetted: " + recipe.Name + "!");
+        Console.WriteLine(recipe.Effect);
+
+        return true;
     }
 
 }

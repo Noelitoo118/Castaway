@@ -16,16 +16,16 @@ namespace Castaway
         private int _stone;
         private int _leaf;
         private int _rope;
-        
 
-        public string Name { get; private set; }
-        public int Food { get; private set; }
-        public int Water { get; private set; }
-        public int Energy { get; private set; }
-        public int Wood { get; private set; }
-        public int Stone { get; private set; }
-        public int Leaf { get; private set; }
-        public int Rope { get; private set; }
+
+        public string Name { get { return _name; } }
+        public int Food { get { return _food; } }
+        public int Water { get { return _water; } }
+        public int Energy { get { return _energy; } }
+        public int Wood { get { return _wood; } }
+        public int Stone { get { return _stone; } }
+        public int Leaf { get { return _leaf; } }
+        public int Rope { get { return _rope; } }
         public Survivor(string name)
         {
             _name = name;
@@ -105,6 +105,22 @@ namespace Castaway
         public void DeleteEnergy(int amount)
         {
             _energy = LimitStatisztika(_energy - amount);
+        }
+        public void DeleteLeaf(int amount)
+        {
+            _leaf = LimitAlapAnyag(_leaf - amount);
+        }
+        public void DeleteRope(int amount)
+        {
+            _rope = LimitAlapAnyag(_rope - amount);
+        }
+        public void DeleteWood(int amount)
+        {
+            _wood = LimitAlapAnyag(_wood - amount);
+        }
+        public void DeleteStone(int amount)
+        {
+            _stone = LimitAlapAnyag(_stone - amount);
         }
     }
 }
