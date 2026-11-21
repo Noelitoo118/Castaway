@@ -10,7 +10,6 @@ namespace Castaway
     {
         public string Name { get; private set; }
         public string Description { get; private set; }
-
         public int Food { get; private set; }
         public int Water { get; private set; }
         public int Wood { get; private set; }

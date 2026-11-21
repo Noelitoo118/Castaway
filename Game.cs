@@ -7,27 +7,27 @@ public class Game
     private List<Island> _allLocations = new List<Island>
 {
     new Island(
-        "Forrás", 0,
+        "Forrás", "\"Forrás: Kristálytiszta víz bugyog elő a sziklák közül.\",",
         0, 4, 0, 0, 0, 0,
         0, 2, 0, 0),
 
     new Island(
-        "Banánliget", 1,
+        "Banánliget","Banánliget: A sziget belsejében roskadoznak a fák a banántól.",
         4, 0, 0, 0, 0, 0,
         2, 0, 0, 0),
 
     new Island(
-        "Kőfejtő",2,
+        "Kőfejtő","Kőfejtő: Lapos, könnyen hasítható kövek borítják a domboldalt.",
         0, 0, 0, 4, 0, 0,
         0, 0, 1, 0),
 
     new Island(
-        "Elhagyott tábor", 3,
+        "Elhagyott tábor", "Elhagyott tábor: Valaki már járt itt előtted, és hagyott hátra pár dolgot.",
         0, 0, 2, 0, 0, 2,
         0, 0, 1, 0),
 
     new Island(
-        "Barlang", 4,
+        "Barlang","Barlang: Száraz, szélvédett barlang, tökéletes egy jó alváshoz.",
         0, 0, 0, 2, 3, 0,
         0, 0, 0, 2)
 };
@@ -434,7 +434,7 @@ public class Game
         {
             foreach (Island location in _discoveredLocations)
             {
-                Console.WriteLine(Texts.LocationTexts[location.TextIndex]);
+                Console.WriteLine(location.Name);
 
                 if (location.GatherBonus > 0)
                     Console.WriteLine("  Gyűjtögetés bónusz: +" + location.GatherBonus);
@@ -682,7 +682,7 @@ public class Game
 
         Console.WriteLine();
         Console.WriteLine("Új helyszínt fedeztél fel!");
-        Console.WriteLine(Texts.LocationTexts[found.TextIndex]);
+        Console.WriteLine(found.Name);
 
         _survivor.AddFood(found.Food);
         _survivor.AddWater(found.Water);
