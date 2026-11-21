@@ -4,6 +4,45 @@ using System.Text;
 
 public class Game
 {
+    private List<Island> _allLocations = new List<Island>
+{
+    new Island(
+        "Forrás", 0,
+        0, 4, 0, 0, 0, 0,
+        0, 2, 0, 0),
+
+    new Island(
+        "Banánliget", 1,
+        4, 0, 0, 0, 0, 0,
+        2, 0, 0, 0),
+
+    new Island(
+        "Kőfejtő",2,
+        0, 0, 0, 4, 0, 0,
+        0, 0, 1, 0),
+
+    new Island(
+        "Elhagyott tábor", 3,
+        0, 0, 2, 0, 0, 2,
+        0, 0, 1, 0),
+
+    new Island(
+        "Barlang", 4,
+        0, 0, 0, 2, 3, 0,
+        0, 0, 0, 2)
+};
+
+    private List<Island> _discoveredLocations = new List<Island>();
+
+    private int _gatherLevel = 0;
+    private int _gatherUses = 0;
+
+    private int _waterLevel = 0;
+    private int _waterUses = 0;
+
+    private int _materialLevel = 0;
+    private int _materialUses = 0;
+
     private const int NightFoodCost = 2;
     private const int NightWaterCost = 2;
     private const int NightEnergyGain = 3;
@@ -63,12 +102,12 @@ public class Game
             ShowStatus();
             ShowMenu();
 
-            int choice = ReadNumber(1, 8);
+            int choice = ReadNumber(1, 9);
 
             Console.WriteLine();
 
             if (_timeOfDay == 2 &&
-            (choice == 1 || choice == 2 || choice == 3 || choice == 5))
+            (choice == 1 || choice == 2 || choice == 3 || choice == 5) || choice == 9)
             {
                 Console.WriteLine("Már sötét van! Este csak pihenni vagy barkácsolni lehet.");
             }
@@ -95,6 +134,13 @@ public class Game
             }
             else if (choice == 8)
             {
+                if (Explore())
+                {
+                    AdvanceTime();
+                }
+            }
+            else if (choice == 9)
+            {
                 running = false;
                 _endReason = "Kilépés";
             }
@@ -106,64 +152,74 @@ public class Game
         Console.WriteLine();
         Console.WriteLine("Viszlát, " + _survivor.Name + "!");
     }
-    private bool DoAction(int choice)
+    private void DoAction(int action)
     {
-        if (choice != 4 && _survivor.Energy < ActionCost)
+        if (action == 4)
         {
-            Console.WriteLine("Túl fáradt vagy, ehhez legalább " + ActionCost
-                + " energia kell. Most csak pihenni tudsz.");
-            return false;
-        }
-
-        if (choice == 4)
-        {
-            int gain = RestGain;
+            int restGain = RestGain;
 
             if (_buildings.Contains("Menedék"))
             {
-                gain = 7;
+                restGain += 2;
             }
 
-            _survivor.AddEnergy(gain);
+            restGain += GetRestBonus();
 
-            Console.WriteLine(RandomText(Texts.RestTexts) + " +" + gain + " energia.");
+            _survivor.AddEnergy(restGain);
 
-            return true;
+            Console.WriteLine("Pihentél. +" + restGain + " energia.");
+            return;
+        }
+
+        if (_survivor.Energy < ActionCost)
+        {
+            Console.WriteLine("Nincs elég energiád ehhez az akcióhoz!");
+            return;
         }
 
         _survivor.DeleteEnergy(ActionCost);
 
-        if (choice == 1)
+        if (action == 1)
         {
-            int gain = _random.Next(2, 5);
-            _survivor.AddFood(gain);
-            Console.WriteLine(RandomText(Texts.GatherTexts) + " +" + gain + " élelem.");
+            int amount = _random.Next(2, 5) + _gatherLevel + GetGatherBonus();
+            _survivor.AddFood(amount);
+
+            Console.WriteLine("Élelmet gyűjtöttél. +" + amount + " élelem.");
+
+            IncreaseSkill("Élelemgyűjtés", ref _gatherLevel, ref _gatherUses);
         }
-        else if (choice == 2)
+        else if (action == 2)
         {
-            int gain = _random.Next(2, 5);
+            int amount = _random.Next(2, 5) + _waterLevel + GetWaterBonus();
 
             if (_buildings.Contains("Tűzrakó hely"))
             {
-                gain += 2;
+                amount += 2;
             }
 
-            _survivor.AddWater(gain);
+            _survivor.AddWater(amount);
 
-            Console.WriteLine(RandomText(Texts.WaterTexts) + " +" + gain + " víz.");
+            Console.WriteLine("Vizet gyűjtöttél. +" + amount + " víz.");
+
+            IncreaseSkill("Vízkeresés", ref _waterLevel, ref _waterUses);
         }
-        else
+        else if (action == 3)
         {
-            int wood = _random.Next(1, 4);
-            int stone = _random.Next(0, 3);
-            int leaf = _random.Next(1, 4);
+            int wood = _random.Next(1, 4) + _materialLevel + GetMaterialBonus();
+            int stone = _random.Next(0, 3) + _materialLevel + GetMaterialBonus();
+            int leaf = _random.Next(1, 4) + _materialLevel + GetMaterialBonus();
+
             _survivor.AddWood(wood);
             _survivor.AddStone(stone);
             _survivor.AddLeaf(leaf);
-            Console.WriteLine(RandomText(Texts.MaterialTexts)
-                + " +" + wood + " fa, +" + stone + " kő, +" + leaf + " levél.");
+
+            Console.WriteLine("Anyagokat gyűjtöttél:");
+            Console.WriteLine("Fa: +" + wood);
+            Console.WriteLine("Kő: +" + stone);
+            Console.WriteLine("Levél: +" + leaf);
+
+            IncreaseSkill("Anyaggyűjtés", ref _materialLevel, ref _materialUses);
         }
-        return true;
     }
 
     private void AdvanceTime()
@@ -336,7 +392,8 @@ public class Game
         Console.WriteLine("[5] Barkácsolás");
         Console.WriteLine("[6] Halászat");
         Console.WriteLine("[7] Leltár");
-        Console.WriteLine("[8] Kilépés");
+        Console.WriteLine("[8] Felfedezés");
+        Console.WriteLine("[9] Kilépés");
     }
     private void ShowInventory()
     {
@@ -349,7 +406,11 @@ public class Game
         Console.WriteLine($"Kő: {_survivor.Stone}");
         Console.WriteLine($"Levél: {_survivor.Leaf}");
         Console.WriteLine($"Kötél: {_survivor.Rope}");
-
+        Console.WriteLine();
+        Console.WriteLine("--- Gyakorlati szintek ---");
+        Console.WriteLine("Élelemgyűjtés: " + _gatherLevel +". szint | Használatok: " + _gatherUses );
+        Console.WriteLine( "Vízkeresés: " + _waterLevel +". szint | Használatok: " + _waterUses);
+        Console.WriteLine("Anyaggyűjtés: " + _materialLevel +". szint | Használatok: " + _materialUses);
         if (_buildings.Count == 0)
         {
             Console.WriteLine("Építmények: még nincs egy sem.");
@@ -360,6 +421,32 @@ public class Game
             foreach (string building in _buildings)
             {
                 Console.WriteLine("- " + building);
+            }
+        }
+        Console.WriteLine();
+        Console.WriteLine("--- Felfedezett helyszínek ---");
+
+        if (_discoveredLocations.Count == 0)
+        {
+            Console.WriteLine("Még nem fedeztél fel helyszínt.");
+        }
+        else
+        {
+            foreach (Island location in _discoveredLocations)
+            {
+                Console.WriteLine(Texts.LocationTexts[location.TextIndex]);
+
+                if (location.GatherBonus > 0)
+                    Console.WriteLine("  Gyűjtögetés bónusz: +" + location.GatherBonus);
+
+                if (location.WaterBonus > 0)
+                    Console.WriteLine("  Vízkeresés bónusz: +" + location.WaterBonus);
+
+                if (location.MaterialBonus > 0)
+                    Console.WriteLine("  Anyaggyűjtés bónusz: +" + location.MaterialBonus);
+
+                if (location.RestBonus > 0)
+                    Console.WriteLine("  Pihenés bónusz: +" + location.RestBonus);
             }
         }
     }
@@ -549,5 +636,128 @@ public class Game
             Console.WriteLine(RandomText(Texts.FishingFail));
         }
     }
+    private void IncreaseSkill(string skillName, ref int level, ref int uses)
+    {
+        uses++;
 
+        if (uses % 5 == 0 && level < 3)
+        {
+            level++;
+            Console.WriteLine(
+                "Egyre ügyesebb vagy! " + skillName + ": " + level + ". szint."
+            );
+        }
+    }
+    private bool Explore()
+    {
+        if (_discoveredLocations.Count == _allLocations.Count)
+        {
+            Console.WriteLine("Már minden helyszínt felfedeztél!");
+            return false;
+        }
+
+        if (_survivor.Energy < ActionCost)
+        {
+            Console.WriteLine("Nincs elég energiád a felfedezéshez!");
+            return false;
+        }
+
+        List<Island> undiscovered =
+            new List<Island>();
+
+        foreach (Island location in _allLocations)
+        {
+            if (!_discoveredLocations.Contains(location))
+            {
+                undiscovered.Add(location);
+            }
+        }
+
+        Island found =
+            undiscovered[_random.Next(undiscovered.Count)];
+
+        _survivor.DeleteEnergy(ActionCost);
+
+        _discoveredLocations.Add(found);
+
+        Console.WriteLine();
+        Console.WriteLine("Új helyszínt fedeztél fel!");
+        Console.WriteLine(Texts.LocationTexts[found.TextIndex]);
+
+        _survivor.AddFood(found.Food);
+        _survivor.AddWater(found.Water);
+        _survivor.AddWood(found.Wood);
+        _survivor.AddStone(found.Stone);
+        _survivor.AddLeaf(found.Leaf);
+        _survivor.AddRope(found.Rope);
+
+        Console.WriteLine("Megtalált jutalmak:");
+
+        if (found.Food > 0)
+            Console.WriteLine("Élelem: +" + found.Food);
+
+        if (found.Water > 0)
+            Console.WriteLine("Víz: +" + found.Water);
+
+        if (found.Wood > 0)
+            Console.WriteLine("Fa: +" + found.Wood);
+
+        if (found.Stone > 0)
+            Console.WriteLine("Kő: +" + found.Stone);
+
+        if (found.Leaf > 0)
+            Console.WriteLine("Levél: +" + found.Leaf);
+
+        if (found.Rope > 0)
+            Console.WriteLine("Kötél: +" + found.Rope);
+
+        return true;
+    }
+    private int GetGatherBonus()
+    {
+        int bonus = 0;
+
+        foreach (Island location in _discoveredLocations)
+        {
+            bonus += location.GatherBonus;
+        }
+
+        return bonus;
+    }
+
+    private int GetWaterBonus()
+    {
+        int bonus = 0;
+
+        foreach (Island location in _discoveredLocations)
+        {
+            bonus += location.WaterBonus;
+        }
+
+        return bonus;
+    }
+
+    private int GetMaterialBonus()
+    {
+        int bonus = 0;
+
+        foreach (Island location in _discoveredLocations)
+        {
+            bonus += location.MaterialBonus;
+        }
+
+        return bonus;
+    }
+
+    private int GetRestBonus()
+    {
+        int bonus = 0;
+
+        foreach (Island location in _discoveredLocations)
+        {
+            bonus += location.RestBonus;
+        }
+
+        return bonus;
+    }
 }
