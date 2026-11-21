@@ -4,6 +4,9 @@ using System.Text;
 
 public class Game
 {
+    private DifficultySettings _settings;
+
+
     private List<Island> _allLocations = new List<Island>
 {
     new Island(
@@ -90,7 +93,11 @@ public class Game
             Console.WriteLine("Nincs több bemenet, a játék véget ér.");
             return;
         }
-        _survivor = new Survivor(name);
+        Difficulty difficulty = ChooseDifficulty();
+
+        _settings = new DifficultySettings(difficulty);
+
+        _survivor = new Survivor(name, _settings.StartingFood,_settings.StartingWater,10,0,0,0,0);
 
         Console.WriteLine($"Üdv a szigeten, {_survivor.Name}!");
         Console.WriteLine();
@@ -118,16 +125,17 @@ public class Game
             }
             else if (choice == 5)
             {
-                Fishing();
-                AdvanceTime();
-            }
-            else if (choice == 6)
-            {
                 if (Craft())
                 {
                     AdvanceTime();
                 }
             }
+            else if (choice == 6)
+            {
+                Fishing();
+                AdvanceTime();
+            }
+          
             else if (choice == 7)
             {
                 ShowInventory();
@@ -233,7 +241,7 @@ public class Game
             Console.WriteLine();
             Console.WriteLine("--- Leszállt az éj (" + _day + ". nap) ---");
 
-            if (_day % 5 == 0)
+            if (_day % _settings.ShipInterval == 0)
             {
                 if (CheckShip())
                 {
@@ -260,7 +268,7 @@ public class Game
 
         NightEvent nightEvent;
 
-        if (_random.Next(100) < 25)
+        if (_random.Next(100) < _settings.NightEventChance)
         {
             NightEvent[] events =
             {
@@ -578,7 +586,7 @@ public class Game
     }
     private void CheckShipWarning()
     {
-        if (_day % 5 == 0 && _warningShownDay != _day)
+        if (_day % _settings.ShipInterval == 0 && _warningShownDay != _day)
         {
             Console.WriteLine();
             Console.WriteLine("FIGYELEM! Ma este egy hajó haladhat el a sziget mellett!");
@@ -759,5 +767,23 @@ public class Game
         }
 
         return bonus;
+    }
+    private Difficulty ChooseDifficulty()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Válassz nehézségi szintet:");
+        Console.WriteLine("1. Easy");
+        Console.WriteLine("2. Normal");
+        Console.WriteLine("3. Hard");
+
+        int choice = ReadNumber(1, 3);
+
+        if (choice == 1)
+            return Difficulty.Easy;
+
+        if (choice == 2)
+            return Difficulty.Normal;
+
+        return Difficulty.Hard;
     }
 }
