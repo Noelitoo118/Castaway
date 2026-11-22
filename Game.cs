@@ -4,6 +4,8 @@ using System.Text;
 
 public class Game
 {
+    private List<ITool> _tools = new List<ITool>();
+
     private int _stormWarningShownDay = 0;
 
     private bool _wreckAvailable = false;
@@ -82,6 +84,12 @@ public class Game
     new Craft("Jelzőtűz", 10, 5, 0, 2,"Egy arra járó hajó észrevehet.", true),
 
     new Craft("Megerősített menedék",3, 0, 0, 1,"A nagy vihar ellen is védelmet nyújt.",true),
+
+    new Craft("Lándzsa", 2, 1, 0, 0,"Élelemgyűjtés +2, halászat esélye +25%.", false),
+
+    new Craft("Kanna", 2, 0, 0, 1,"Vízkeresés +3 víz.", false),
+
+new Craft("Fejsze", 2, 2, 0, 1,"Anyaggyűjtés +2 fa.", false),
 };
     public void Run()
     {
@@ -203,7 +211,7 @@ public class Game
 
         if (action == 1)
         {
-            int amount = _random.Next(2, 5) + _gatherLevel + GetGatherBonus();
+            int amount = _random.Next(2, 5) + _gatherLevel + GetGatherBonus()+ ApplyToolBonuses(ToolAction.FoodGathering);
             _survivor.AddFood(amount);
 
             Console.WriteLine("Élelmet gyűjtöttél. +" + amount + " élelem.");
@@ -212,7 +220,7 @@ public class Game
         }
         else if (action == 2)
         {
-            int amount = _random.Next(2, 5) + _waterLevel + GetWaterBonus();
+            int amount = _random.Next(2, 5) + _waterLevel + GetWaterBonus() + ApplyToolBonuses(ToolAction.WaterGathering); ;
 
             if (_buildings.Contains("Tűzrakó hely"))
             {
@@ -227,9 +235,9 @@ public class Game
         }
         else if (action == 3)
         {
-            int wood = _random.Next(1, 4) + _materialLevel + GetMaterialBonus();
-            int stone = _random.Next(0, 3) + _materialLevel + GetMaterialBonus();
-            int leaf = _random.Next(1, 4) + _materialLevel + GetMaterialBonus();
+            int wood = _random.Next(1, 4) + _materialLevel + GetMaterialBonus() + ApplyToolBonuses(ToolAction.MaterialGathering); ;
+            int stone = _random.Next(0, 3) + _materialLevel + GetMaterialBonus() ;
+            int leaf = _random.Next(1, 4) + _materialLevel + GetMaterialBonus() ; ;
 
             _survivor.AddWood(wood);
             _survivor.AddStone(stone);
@@ -484,6 +492,49 @@ public class Game
                     Console.WriteLine("  Pihenés bónusz: +" + location.RestBonus);
             }
         }
+        Console.WriteLine();
+        Console.WriteLine(" ESZKÖZÖK ");
+
+        if (_tools.Count == 0)
+        {
+            Console.WriteLine("Nincs nálad használható eszköz.");
+        }
+        else
+        {
+            foreach (ITool tool in _tools)
+            {
+                Console.WriteLine(tool.Name + " - hátralévő használatok: "
+                    + tool.RemainingUses);
+            }
+        }
+    }
+    private int ApplyToolBonuses(ToolAction action)
+    {
+        int totalBonus = 0;
+        List<ITool> brokenTools = new List<ITool>();
+
+        foreach (ITool tool in _tools)
+        {
+            int bonus = tool.GetBonus(action);
+
+            if (bonus > 0)
+            {
+                totalBonus += bonus;
+
+                if (tool.Use())
+                {
+                    brokenTools.Add(tool);
+                }
+            }
+        }
+
+        foreach (ITool tool in brokenTools)
+        {
+            Console.WriteLine("Eltört az eszközöd: " + tool.Name + "!");
+            _tools.Remove(tool);
+        }
+
+        return totalBonus;
     }
     private int ReadNumber(int min, int max)
     {
@@ -540,6 +591,14 @@ public class Game
 
 
         Craft recipe = _recipes[choice - 1];
+        foreach (ITool tool in _tools)
+        {
+            if (tool.Name == recipe.Name)
+            {
+                Console.WriteLine("Ebből az eszközből már van nálad egy!");
+                return false;
+            }
+        }
         if (recipe.Name == "Megerősített menedék" && !_buildings.Contains("Menedék"))
         {
             Console.WriteLine("Megerősített menedéket csak meglévő Menedékből építhetsz!");
@@ -565,6 +624,12 @@ public class Game
         if (recipe.Name == "Kötél")
         {
             _survivor.AddRope(1);
+        }
+        else if (recipe.Name == "Lándzsa" ||
+             recipe.Name == "Kanna" ||
+             recipe.Name == "Fejsze")
+        {
+            AddCraftedTool(recipe.Name);
         }
         else
         {
@@ -667,7 +732,7 @@ public class Game
 
         _survivor.DeleteEnergy(ActionCost);
 
-        int chance = _buildings.Contains("Lándzsa") ? 75 : 50;
+        int chance = 50 + GetFishingBonus();
 
         if (_random.Next(100) < chance)
         {
@@ -885,5 +950,50 @@ public class Game
         Console.WriteLine("+3 kötél, +4 fa, +2 kő.");
 
         return true;
+    }
+    private int GetFishingBonus()
+    {
+        int bonus = 0;
+        List<ITool> brokenTools = new List<ITool>();
+
+        foreach (ITool tool in _tools)
+        {
+            int toolBonus = tool.GetFishingChanceBonus();
+
+            if (toolBonus > 0)
+            {
+                bonus += toolBonus;
+
+                if (tool.Use())
+                {
+                    brokenTools.Add(tool);
+                }
+            }
+        }
+
+        foreach (ITool tool in brokenTools)
+        {
+            Console.WriteLine("Eltört az eszközöd: " + tool.Name + "!");
+            _tools.Remove(tool);
+        }
+
+        return bonus;
+    }
+    private void AddCraftedTool(string name)
+    {
+        switch (name)
+        {
+            case "Lándzsa":
+                _tools.Add(new Spear());
+                break;
+
+            case "Kanna":
+                _tools.Add(new Canteen());
+                break;
+
+            case "Fejsze":
+                _tools.Add(new Axe());
+                break;
+        }
     }
 }
