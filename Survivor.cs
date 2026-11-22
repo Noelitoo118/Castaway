@@ -130,5 +130,12 @@ namespace Castaway
         {
             _water = LimitStatisztika(_water - amount);
         }
+        public void LoseHalfMaterials()
+        {
+            _wood /= 2;
+            _stone /= 2;
+            _leaf /= 2;
+            _rope /= 2;
+        }
     }
 }

@@ -4,6 +4,12 @@ using System.Text;
 
 public class Game
 {
+    private int _stormWarningShownDay = 0;
+
+    private bool _wreckAvailable = false;
+    private bool _wreckSearched = false;
+    private int _lastStormDay = 0;
+
     private DifficultySettings _settings;
 
 
@@ -67,17 +73,15 @@ public class Game
 
     private List<Craft> _recipes = new List<Craft>
 {
-    new Craft("Kötél", 0, 0, 3, 0,
-        "Alapanyag, többször is elkészíthető.", false),
+    new Craft("Kötél", 0, 0, 3, 0,"Alapanyag, többször is elkészíthető.", false),
 
-    new Craft("Tűzrakó hely", 3, 2, 0, 0,
-        "A vízkeresés +2 vizet ad.", true),
+    new Craft("Tűzrakó hely", 3, 2, 0, 0,"A vízkeresés +2 vizet ad.", true),
 
-    new Craft("Menedék", 6, 0, 4, 1,
-        "A pihenés 5 helyett 7 energiát ad.", true),
+    new Craft("Menedék", 6, 0, 4, 1,"A pihenés 5 helyett 7 energiát ad.", true),
 
-    new Craft("Jelzőtűz", 10, 5, 0, 2,
-        "Egy arra járó hajó észrevehet.", true)
+    new Craft("Jelzőtűz", 10, 5, 0, 2,"Egy arra járó hajó észrevehet.", true),
+
+    new Craft("Megerősített menedék",3, 0, 0, 1,"A nagy vihar ellen is védelmet nyújt.",true),
 };
     public void Run()
     {
@@ -109,12 +113,12 @@ public class Game
             ShowStatus();
             ShowMenu();
 
-            int choice = ReadNumber(1, 9);
+            int choice = ReadNumber(1, 10);
 
             Console.WriteLine();
 
             if (_timeOfDay == 2 &&
-            (choice == 1 || choice == 2 || choice == 3 || choice == 5) || choice == 9)
+            (choice == 1 || choice == 2 || choice == 3 || choice == 5) || choice == 9 || choice == 10)
             {
                 Console.WriteLine("Már sötét van! Este csak pihenni vagy barkácsolni lehet.");
             }
@@ -149,6 +153,13 @@ public class Game
             }
             else if (choice == 9)
             {
+                if (SearchWreck())
+                {
+                    AdvanceTime();
+                }
+            }
+            else if (choice == 10)
+            {
                 running = false;
                 _endReason = "Kilépés";
             }
@@ -166,12 +177,15 @@ public class Game
         {
             int restGain = RestGain;
 
-            if (_buildings.Contains("Menedék"))
+            if (_buildings.Contains("Menedék") || _buildings.Contains("Megerősített menedék"))
             {
                 restGain += 2;
             }
 
             restGain += GetRestBonus();
+
+            _survivor.AddEnergy(restGain);
+            Console.WriteLine("Pihentél, és " + restGain + " energiát nyertél.");
 
             _survivor.AddEnergy(restGain);
 
@@ -266,54 +280,65 @@ public class Game
         Console.WriteLine("-2 élelem");
         Console.WriteLine("-2 víz");
 
-        NightEvent nightEvent;
-
-        if (_random.Next(100) < _settings.NightEventChance)
+        if (_day % 7 == 0)
         {
-            NightEvent[] events =
-            {
-            NightEvent.StrongWind,
-            NightEvent.WildAnimal
-        };
-
-            nightEvent = events[_random.Next(events.Length)];
+            BigStorm();
         }
         else
         {
-            nightEvent = NightEvent.QuietNight;
+            NightEvent nightEvent;
+
+            if (_random.Next(100) < _settings.NightEventChance)
+            {
+                NightEvent[] events =
+                {
+                NightEvent.StrongWind,
+                NightEvent.WildAnimal
+            };
+
+                nightEvent = events[_random.Next(events.Length)];
+            }
+            else
+            {
+                nightEvent = NightEvent.QuietNight;
+            }
+
+            switch (nightEvent)
+            {
+                case NightEvent.QuietNight:
+                    Console.WriteLine(RandomText(Texts.QuietNights));
+                    break;
+
+                case NightEvent.StrongWind:
+                    Console.WriteLine(RandomText(Texts.WindTexts));
+                    _survivor.DeleteWood(2);
+                    Console.WriteLine("2 fa elveszett.");
+                    break;
+
+                case NightEvent.WildAnimal:
+                    Console.WriteLine(RandomText(Texts.AnimalTexts));
+                    _survivor.DeleteFood(2);
+                    Console.WriteLine("2 élelem elveszett.");
+                    break;
+            }
         }
 
-        switch (nightEvent)
-        {
-            case NightEvent.QuietNight:
-                Console.WriteLine(RandomText(Texts.QuietNights));
-                break;
-
-            case NightEvent.StrongWind:
-                Console.WriteLine(RandomText(Texts.WindTexts));
-                _survivor.DeleteWood(2);
-                Console.WriteLine("2 fa elveszett.");
-                break;
-
-            case NightEvent.WildAnimal:
-                Console.WriteLine(RandomText(Texts.AnimalTexts));
-                _survivor.DeleteFood(2);
-                Console.WriteLine("2 élelem elveszett.");
-                break;
-        }
-
-        if (_survivor.Food == 0 || _survivor.Water == 0)
+        if (_survivor.Food <= 0 || _survivor.Water <= 0)
         {
             GameOver();
             return;
         }
 
         _survivor.AddEnergy(NightEnergyGain);
-        if (!_buildings.Contains("Menedék") && _random.Next(100) < 30)
+
+        if (!_buildings.Contains("Menedék") &&
+            !_buildings.Contains("Megerősített menedék") &&
+            _random.Next(100) < 30)
         {
             _survivor.DeleteEnergy(3);
             Console.WriteLine("Rosszul aludtál a szabad ég alatt! -3 energiát vesztettél.");
         }
+
         Console.WriteLine("Átaludtad az éjszakát. +3 energia.");
     }
 
@@ -401,7 +426,9 @@ public class Game
         Console.WriteLine("[6] Halászat");
         Console.WriteLine("[7] Leltár");
         Console.WriteLine("[8] Felfedezés");
-        Console.WriteLine("[9] Kilépés");
+        Console.WriteLine("[9] Roncs átkutatása");
+        Console.WriteLine("[10] Kilépés");
+     
     }
     private void ShowInventory()
     {
@@ -504,12 +531,20 @@ public class Game
 
         int choice = ReadNumber(0, _recipes.Count);
 
+
         if (choice == 0)
         {
             return false;
         }
 
+
+
         Craft recipe = _recipes[choice - 1];
+        if (recipe.Name == "Megerősített menedék" && !_buildings.Contains("Menedék"))
+        {
+            Console.WriteLine("Megerősített menedéket csak meglévő Menedékből építhetsz!");
+            return false;
+        }
 
         if (!CanCraft(recipe))
         {
@@ -548,7 +583,7 @@ public class Game
 
         if (_buildings.Contains("Jelzőtűz"))
         {
-            Console.WriteLine("A hajó észrevette a jelzőtüzedet!");
+            Console.WriteLine(RandomText(Texts.RescueTexts));
             Console.WriteLine("MEGMENEKÜLTÉL!");
 
             _gameEnded = true;
@@ -579,7 +614,8 @@ public class Game
             Console.WriteLine("Elfogyott a vized!");
         }
 
-        Console.WriteLine("Nem sikerült túlélned az éjszakát.");
+        Console.WriteLine(RandomText(Texts.RescueTexts));
+
 
         _gameEnded = true;
         _endReason = "Game Over";
@@ -785,5 +821,69 @@ public class Game
             return Difficulty.Normal;
 
         return Difficulty.Hard;
+    }
+    private void CheckStormWarning()
+    {
+        if (_timeOfDay == 0 &&
+            _day >= 5 &&
+            (_day + 2) % 7 == 0 &&
+            _stormWarningShownDay != _day)
+        {
+            Console.WriteLine();
+            Console.WriteLine(RandomText(Texts.StormWarnings));
+
+            _stormWarningShownDay = _day;
+        }
+    }
+    private void BigStorm()
+    {
+       
+
+        _lastStormDay = _day;
+        _wreckAvailable = true;
+        _wreckSearched = false;
+
+        Console.WriteLine();
+        Console.WriteLine(RandomText(Texts.WreckTexts));
+
+        if (_buildings.Contains("Megerősített menedék"))
+        {
+            Console.WriteLine("A megerősített menedéked átvészelte a vihart!");
+        }
+        else
+        {
+            Console.WriteLine("Nem volt megerősített menedéked, ezért a vihar elpusztította a készleteid felét!");
+
+            _survivor.LoseHalfMaterials();
+            _survivor.DeleteFood(3);
+        }
+    }
+    private bool SearchWreck()
+    {
+        if (!_wreckAvailable || _wreckSearched)
+        {
+            Console.WriteLine("Jelenleg nincs átkutatható roncs a parton.");
+            return false;
+        }
+
+        if (_survivor.Energy < 2)
+        {
+            Console.WriteLine("Nincs elég energiád a roncs átkutatásához!");
+            return false;
+        }
+
+        _survivor.DeleteEnergy(2);
+
+        _survivor.AddRope(3);
+        _survivor.AddWood(4);
+        _survivor.AddStone(2);
+
+        _wreckSearched = true;
+        _wreckAvailable = false;
+
+        Console.WriteLine("Átkutattad a roncsot!");
+        Console.WriteLine("+3 kötél, +4 fa, +2 kő.");
+
+        return true;
     }
 }
